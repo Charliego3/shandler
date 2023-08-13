@@ -8,6 +8,17 @@ import (
 	"sync"
 )
 
+type Handler interface {
+	WithPrefix(prefix string) slog.Handler
+	WithThemes(themes map[ThemeSection]*Theme) slog.Handler
+}
+
+// File represents a file descriptor.
+type File interface {
+	io.ReadWriter
+	Fd() uintptr
+}
+
 type baseHandler struct {
 	preformatted []byte
 	groupPrefix  string   // for text: prefix of groups opened in preformatting
@@ -25,13 +36,16 @@ type baseHandler struct {
 	// w is output writer, default using os.Stderr
 	w io.Writer
 
+	// tty only tty can be colored output
+	tty bool
+
 	// level is logger min Level, default is slog.LevelInfo
 	level slog.Level
 
 	// prefix output prefix in every record
 	prefix string
 
-	// replacer report to Replacer
+	// replacer refer to Replacer
 	replacer Replacer
 
 	// caller if true caller will be logged.
@@ -39,14 +53,15 @@ type baseHandler struct {
 
 	// fullCaller: <mod/package.FunctionName:Line>
 	fullCaller bool
+
+	themes map[ThemeSection]*Theme
 }
 
-func NewTextHandler(opts ...Option) slog.Handler {
-	return createHandler(opts...)
-}
-
-func NewJsonHandler(opts ...Option) slog.Handler {
-	return createHandler(opts...)
+func (h *baseHandler) TTY() File {
+	if f, ok := h.w.(File); ok {
+		return f
+	}
+	return nil
 }
 
 // Enabled reports whether the handler handles records at the given level.
@@ -80,7 +95,21 @@ func (h *baseHandler) Enabled(_ context.Context, level slog.Level) bool {
 //   - If a group has no Attrs (even if it has a non-empty key),
 //     ignore it.
 func (h *baseHandler) Handle(_ context.Context, r slog.Record) error {
-	return nil
+	b := h.createBuilder(NewBuffer(), &r)
+	defer b.free()
+	b.start()
+	b.appendTime()
+	b.appendLevel()
+	b.appendCaller()
+	b.appendPrefix()
+	b.appendMessage()
+	b.appendAttrs()
+	b.close()
+	buf := b.output()
+	h.mux.Lock()
+	defer h.mux.Unlock()
+	_, err := h.w.Write(*buf)
+	return err
 }
 
 // WithAttrs returns a new Handler whose attributes consist of
@@ -114,23 +143,16 @@ func (h *baseHandler) WithGroup(name string) slog.Handler {
 		return h
 	}
 	h2 := h.clone()
+	h2.initThemes()
 	h2.groups = append(h2.groups, name)
 	return h2
 }
 
-func (h *baseHandler) getLevelString(l slog.Level) string {
-	switch l {
-	case slog.LevelInfo:
-		return infoStyle.Render("INFO")
-	case slog.LevelDebug:
-		return debugStyle.Render("DBUG")
-	case slog.LevelWarn:
-		return warnStyle.Render("WARN")
-	case slog.LevelError:
-		return errorStyle.Render("ERRO")
-	default:
-		return boldStyle.Render(l.String()[:4])
+func (h *baseHandler) createBuilder(buf *Buffer, r *slog.Record) Builder {
+	if h.json {
+		return nil
 	}
+	return &textBuilder{h.createBaseBuilder(buf, r)}
 }
 
 func (h *baseHandler) clone() *baseHandler {
@@ -139,6 +161,7 @@ func (h *baseHandler) clone() *baseHandler {
 		groupPrefix:  h.groupPrefix,
 		groups:       slices.Clip(h.groups),
 		nOpenGroups:  h.nOpenGroups,
+		json:         h.json,
 		timeFormat:   h.timeFormat,
 		w:            h.w,
 		level:        h.level,
@@ -146,5 +169,6 @@ func (h *baseHandler) clone() *baseHandler {
 		replacer:     h.replacer,
 		caller:       h.caller,
 		fullCaller:   h.fullCaller,
+		themes:       h.themes,
 	}
 }

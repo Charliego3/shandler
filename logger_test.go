@@ -1,24 +1,49 @@
 package shandler
 
 import (
-	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slog"
-	"os"
 	"testing"
+	"time"
 )
 
-func TestLogger(t *testing.T) {
-	f, err := os.OpenFile("text.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
-	require.NoError(t, err)
-	defer f.Close()
-	logger := slog.New(NewTextHandler(
+func BenchmarkLogger(b *testing.B) {
+	slog.SetDefault(slog.New(NewTextHandler(
 		WithCaller(),
-		//WithWriter(f),
 		WithPrefix("Application"),
+		//WithFullCaller(),
+		WithTimeFormat(time.DateTime),
 		WithLevel(slog.LevelDebug),
-	))
-	logger.Debug("debug message", slog.String("str", "string value"))
-	logger.Info("info message", slog.Int("int", 888))
-	logger.Warn("warn message")
-	logger.Error("warn message")
+	)))
+
+	b.ResetTimer()
+	slog.Warn("warn-message")
+}
+
+func TestOutput(t *testing.T) {
+	slog.SetDefault(slog.New(NewTextHandler(
+		WithCaller(),
+		WithPrefix("Application"),
+		//WithFullCaller(),
+		WithTimeFormat(time.DateTime),
+		WithLevel(slog.LevelDebug),
+	)))
+
+	slog.Debug("debug message", slog.String("str", "string value"))
+	slog.Info("info message", slog.Int("int", 888))
+	slog.Warn("warn-message",
+		slog.Group("group",
+			slog.String("one", "value1"),
+			slog.Int("two", 2),
+			slog.Group("inner",
+				slog.String("inner key", "inner value"))),
+		slog.Bool("b", true))
+
+	slog.Error("error message")
+	logger := slog.New(slog.Default().Handler().(Handler).WithPrefix("another"))
+	logger.Info("with another prefix logged")
+
+	logger = slog.New(slog.Default().Handler().(Handler).WithThemes(map[ThemeSection]*Theme{
+		ThemeCaller: NewTheme().Bold().Underline(),
+	}))
+	logger.Info("with another prefix logged")
 }

@@ -1,6 +1,8 @@
 package shandler
 
 import (
+	"github.com/lucasb-eyer/go-colorful"
+	"github.com/mattn/go-isatty"
 	"golang.org/x/exp/slog"
 	"io"
 	"os"
@@ -8,7 +10,7 @@ import (
 )
 
 // Replacer is called to rewrite each non-group attribute before it is logged.
-// The attribute's value has been resolved (see [Value.Resolve]).
+// The attribute's value has been resolved (see [slog.Value.Resolve]).
 // If Replacer returns an Attr with Key == "", the attribute is discarded.
 //
 // The built-in attributes with keys "time", "level", "source", and "msg"
@@ -36,16 +38,52 @@ type Replacer func(groups []string, a slog.Attr) slog.Attr
 
 type Option func(*baseHandler)
 
-func createHandler(opts ...Option) *baseHandler {
-	options := &baseHandler{
+func createHandler(json bool, opts ...Option) *baseHandler {
+	h := &baseHandler{
 		timeFormat: time.Kitchen,
 		w:          os.Stderr,
 		level:      slog.LevelInfo,
+		json:       json,
+		themes:     make(map[ThemeSection]*Theme, 9),
 	}
 	for _, opt := range opts {
-		opt(options)
+		opt(h)
 	}
-	return options
+	h.initThemes()
+	return h
+}
+
+func (h *baseHandler) initThemes() {
+	h.tty = isatty.IsTerminal(h.TTY().Fd())
+	if !h.tty {
+		return
+	}
+
+	h.themes[ThemeTime] = fillTheme(h.themes[ThemeTime], "#6085b9", "#7d467c", false)
+	h.themes[ThemeDebug] = fillTheme(h.themes[ThemeDebug], "#4746ff", "#2f81ff", true)
+	h.themes[ThemeInfo] = fillTheme(h.themes[ThemeInfo], "#009adc", "#00FFD5", true)
+	h.themes[ThemeWarn] = fillTheme(h.themes[ThemeWarn], "#e16c00", "#ff9c01", true)
+	h.themes[ThemeError] = fillTheme(h.themes[ThemeError], "#ff000a", "#FF4F86", true)
+	h.themes[ThemePrefix] = fillTheme(h.themes[ThemePrefix], "#579159", "#008708", true)
+	h.themes[ThemeCaller] = fillTheme(h.themes[ThemeCaller], "#9d86b9", "#2f6982", false)
+	h.themes[ThemeKey] = fillTheme(h.themes[ThemeKey], "#7F7F7F", "#7F7F7F", true)
+	if h.json {
+		h.themes[ThemeBracket] = fillTheme(h.themes[ThemeBracket], "#000000", "#ffffff", true)
+	}
+}
+
+func fillTheme(source *Theme, l, d string, bold bool) *Theme {
+	if source != nil {
+		return source.Format()
+	}
+
+	light, _ := colorful.Hex(l)
+	dark, _ := colorful.Hex(d)
+	theme := NewTheme().Foreground(light, dark)
+	if bold {
+		theme.Bold()
+	}
+	return theme.Format()
 }
 
 func WithTimeFormat(format string) Option {
@@ -88,5 +126,14 @@ func WithCaller() Option {
 func WithFullCaller() Option {
 	return func(cfg *baseHandler) {
 		cfg.fullCaller = true
+	}
+}
+
+func WithTheme(section ThemeSection, theme *Theme) Option {
+	return func(cfg *baseHandler) {
+		if theme == nil {
+			return
+		}
+		cfg.themes[section] = theme.Format()
 	}
 }
