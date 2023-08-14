@@ -22,19 +22,11 @@ func NewTextHandler(opts ...Option) *TextHandler {
 }
 
 func (t *TextHandler) WithPrefix(prefix string) slog.Handler {
-	h := t.clone()
-	h.initThemes()
-	h.prefix = prefix
-	return &TextHandler{h}
+	return &TextHandler{t.withPrefix(prefix)}
 }
 
 func (t *TextHandler) WithThemes(themes map[ThemeSection]*Theme) slog.Handler {
-	h := t.clone()
-	for k, v := range themes {
-		h.themes[k] = v
-	}
-	h.initThemes()
-	return &TextHandler{h}
+	return &TextHandler{t.withThemes(themes)}
 }
 
 type textBuilder struct {
@@ -157,8 +149,7 @@ func (b *textBuilder) appendAttr(a slog.Attr) {
 		b.buf.WriteByte(textAttrSep)
 		b.buf.WriteString(b.h.safeRender(b.h.themes[ThemeKey], b.quote(string(*b.prefix)+a.Key)))
 		b.buf.WriteByte(textComponentSep)
-		// TODO: value format
-		b.buf.WriteString(b.quote(a.Value.String()))
+		b.appendValue(a.Value)
 		return
 	}
 
@@ -173,6 +164,10 @@ func (b *textBuilder) appendAttr(a slog.Attr) {
 			b.closeGroup(a.Key)
 		}
 	}
+}
+
+func (b *textBuilder) appendValue(v slog.Value) {
+	b.buf.WriteString(b.quote(v.String()))
 }
 
 func (b *textBuilder) output() *Buffer {

@@ -54,8 +54,7 @@ func createHandler(json bool, opts ...Option) *baseHandler {
 }
 
 func (h *baseHandler) initThemes() {
-	h.tty = isatty.IsTerminal(h.TTY().Fd())
-	if !h.tty {
+	if h.tty = isatty.IsTerminal(h.TTY().Fd()); !h.tty {
 		return
 	}
 

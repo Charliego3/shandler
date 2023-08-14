@@ -148,6 +148,22 @@ func (h *baseHandler) WithGroup(name string) slog.Handler {
 	return h2
 }
 
+func (h *baseHandler) withPrefix(prefix string) *baseHandler {
+	h2 := h.clone()
+	h2.initThemes()
+	h2.prefix = prefix
+	return h2
+}
+
+func (h *baseHandler) withThemes(themes map[ThemeSection]*Theme) *baseHandler {
+	h2 := h.clone()
+	for k, v := range themes {
+		h2.themes[k] = v
+	}
+	h2.initThemes()
+	return h2
+}
+
 func (h *baseHandler) createBuilder(buf *Buffer, r *slog.Record) Builder {
 	if h.json {
 		return nil

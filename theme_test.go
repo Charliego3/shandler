@@ -2,6 +2,7 @@ package shandler
 
 import (
 	"fmt"
+	"github.com/k0kubun/pp/v3"
 	"github.com/lucasb-eyer/go-colorful"
 	"testing"
 )
@@ -90,4 +91,16 @@ func TestTheme(t *testing.T) {
 		message := theme.Format().Render(s.message)
 		println(message, fmt.Sprintf("%q", message))
 	}
+}
+
+func TestColoredStruct(t *testing.T) {
+	txt := pp.Sprint(struct {
+		Name  string
+		value string
+	}{
+		"should be name",
+		"is a value",
+	})
+	println(txt)
+	pp.Println("just a string")
 }
