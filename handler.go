@@ -2,6 +2,7 @@ package shandler
 
 import (
 	"context"
+	"github.com/mattn/go-isatty"
 	"golang.org/x/exp/slices"
 	"golang.org/x/exp/slog"
 	"io"
@@ -10,7 +11,7 @@ import (
 
 type Handler interface {
 	WithPrefix(prefix string) slog.Handler
-	WithThemes(themes map[ThemeSection]*Theme) slog.Handler
+	WithThemes(themes map[ThemeSchema]*Theme) slog.Handler
 }
 
 // File represents a file descriptor.
@@ -54,14 +55,14 @@ type baseHandler struct {
 	// fullCaller: <mod/package.FunctionName:Line>
 	fullCaller bool
 
-	themes map[ThemeSection]*Theme
+	themes map[ThemeSchema]*Theme
 }
 
-func (h *baseHandler) TTY() File {
+func (h *baseHandler) isTTY() bool {
 	if f, ok := h.w.(File); ok {
-		return f
+		return isatty.IsTerminal(f.Fd())
 	}
-	return nil
+	return false
 }
 
 // Enabled reports whether the handler handles records at the given level.
@@ -155,7 +156,7 @@ func (h *baseHandler) withPrefix(prefix string) *baseHandler {
 	return h2
 }
 
-func (h *baseHandler) withThemes(themes map[ThemeSection]*Theme) *baseHandler {
+func (h *baseHandler) withThemes(themes map[ThemeSchema]*Theme) *baseHandler {
 	h2 := h.clone()
 	for k, v := range themes {
 		h2.themes[k] = v

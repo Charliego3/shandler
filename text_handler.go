@@ -1,10 +1,11 @@
 package shandler
 
 import (
-	"fmt"
 	"golang.org/x/exp/slog"
 	"runtime"
-	"strings"
+	"strconv"
+	"time"
+	"unicode/utf8"
 )
 
 const (
@@ -25,7 +26,7 @@ func (t *TextHandler) WithPrefix(prefix string) slog.Handler {
 	return &TextHandler{t.withPrefix(prefix)}
 }
 
-func (t *TextHandler) WithThemes(themes map[ThemeSection]*Theme) slog.Handler {
+func (t *TextHandler) WithThemes(themes map[ThemeSchema]*Theme) slog.Handler {
 	return &TextHandler{t.withThemes(themes)}
 }
 
@@ -36,6 +37,7 @@ type textBuilder struct {
 func (b *textBuilder) start() {}
 func (b *textBuilder) close() {}
 
+// appendTime If r.Time is the zero time, ignore the time.
 func (b *textBuilder) appendTime() {
 	if b.r.Time.IsZero() {
 		return
@@ -49,7 +51,7 @@ func (b *textBuilder) appendLevel() {
 		b.buf.WriteByte(textAttrSep)
 	}
 	var level string
-	var section ThemeSection
+	var section ThemeSchema
 	switch {
 	case b.r.Level < slog.LevelInfo:
 		section = ThemeDebug
@@ -67,6 +69,7 @@ func (b *textBuilder) appendLevel() {
 	b.buf.WriteString(b.h.safeRender(b.h.themes[section], level))
 }
 
+// appendCaller If r.PC is zero or disabled caller, ignore it.
 func (b *textBuilder) appendCaller() {
 	if !b.h.caller || b.r.PC <= 0 {
 		return
@@ -77,23 +80,34 @@ func (b *textBuilder) appendCaller() {
 	f, _ := fs.Next()
 	caller := f.Function
 	if !b.h.fullCaller {
-		paths := strings.Split(caller, callerSep)
-		if len(paths) > 1 {
-			paths = paths[len(paths)-2:]
-			caller = strings.Join(paths, callerSep)
+		var idx, founded int
+		for i := utf8.RuneCountInString(caller) - 1; i >= 0; i-- {
+			if caller[i] == callerSep[0] {
+				founded++
+			}
+			idx = i
+			if founded == 2 {
+				break
+			}
 		}
+		if idx == 0 {
+			idx -= 1
+		}
+		caller = caller[idx+1:]
 	}
-	caller = fmt.Sprintf("<%s:%d>", caller, f.Line)
+	caller = "<" + caller + ":" + strconv.Itoa(f.Line) + ">"
 	b.buf.WriteString(b.h.safeRender(b.h.themes[ThemeCaller], caller))
 }
 
 func (b *textBuilder) appendPrefix() {
+	var prefix string
 	if b.h.prefix == "" {
-		return
+		prefix = "\uF444"
+	} else {
+		prefix = "[" + b.h.prefix + "]:"
 	}
 
 	b.buf.WriteByte(textAttrSep)
-	prefix := "[" + b.h.prefix + "]:"
 	b.buf.WriteString(b.h.safeRender(b.h.themes[ThemePrefix], prefix))
 }
 
@@ -139,6 +153,7 @@ func (b *textBuilder) closeGroup(name string) {
 	}
 }
 
+// appendAttr If an Attr's key and value are both the zero value, ignore the Attr.
 func (b *textBuilder) appendAttr(a slog.Attr) {
 	a = b.resolve(a)
 	if a.Equal(slog.Attr{}) {
@@ -167,7 +182,25 @@ func (b *textBuilder) appendAttr(a slog.Attr) {
 }
 
 func (b *textBuilder) appendValue(v slog.Value) {
-	b.buf.WriteString(b.quote(v.String()))
+	switch v.Kind() {
+	case slog.KindString:
+		b.buf.WriteString(b.quote(v.String()))
+	case slog.KindInt64:
+		b.buf.WriteString(strconv.FormatInt(v.Int64(), 10))
+	case slog.KindUint64:
+		b.buf.WriteString(strconv.FormatUint(v.Uint64(), 10))
+	case slog.KindFloat64:
+		b.buf.WriteString(strconv.FormatFloat(v.Float64(), 'f', 10, 64))
+	case slog.KindBool:
+		b.buf.WriteString(strconv.FormatBool(v.Bool()))
+	case slog.KindTime:
+		b.buf.WriteString(v.Time().Format(time.RFC3339Nano))
+	case slog.KindDuration:
+		b.buf.WriteString(v.Duration().String())
+	case slog.KindAny:
+	default:
+		b.buf.WriteString(b.quote(v.String()))
+	}
 }
 
 func (b *textBuilder) output() *Buffer {

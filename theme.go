@@ -26,11 +26,11 @@ const (
 	CSI = string(ESC) + "["
 )
 
-//go:generate enumer -type ThemeSection -output theme_string.go
-type ThemeSection uint
+//go:generate enumer -type ThemeSchema -output theme_string.go
+type ThemeSchema uint
 
 const (
-	ThemeTime ThemeSection = iota + 1
+	ThemeTime ThemeSchema = iota + 1
 	ThemeDebug
 	ThemeInfo
 	ThemeWarn
@@ -135,7 +135,7 @@ func (t *Theme) Format() *Theme {
 }
 
 func (t *Theme) Render(s string) string {
-	return fmt.Sprintf("%s%s%sm", t.formatted, s, CSI+ResetSeq)
+	return t.formatted + s + CSI + ResetSeq + "m"
 }
 
 func (h *baseHandler) safeRender(t *Theme, s string) string {

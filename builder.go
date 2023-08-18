@@ -4,6 +4,7 @@ import (
 	"golang.org/x/exp/slog"
 	"strconv"
 	"sync"
+	"time"
 	"unicode"
 	"unicode/utf8"
 )
@@ -91,13 +92,49 @@ func needsQuoting(s string) bool {
 }
 
 func (b *baseBuilder) free() {
-	if b.freeBuf {
-		b.buf.Free()
-	}
+	//if b.freeBuf {
+	b.buf.Free()
+	//}
 	if gs := b.groups; gs != nil {
 		*gs = (*gs)[:0]
 		groupPool.Put(gs)
 	}
+}
+
+func (b *baseBuilder) formatTime(t time.Time) string {
+	year, month, day := t.Date()
+	buf := NewBuffer()
+	buf.WritePosIntWidth(year, 4)
+	buf.WriteByte('-')
+	buf.WritePosIntWidth(int(month), 2)
+	buf.WriteByte('-')
+	buf.WritePosIntWidth(day, 2)
+	buf.WriteByte('T')
+	hour, min, sec := t.Clock()
+	buf.WritePosIntWidth(hour, 2)
+	buf.WriteByte(':')
+	buf.WritePosIntWidth(min, 2)
+	buf.WriteByte(':')
+	buf.WritePosIntWidth(sec, 2)
+	ns := t.Nanosecond()
+	buf.WriteByte('.')
+	buf.WritePosIntWidth(ns/1e6, 3)
+	_, offsetSeconds := t.Zone()
+	if offsetSeconds == 0 {
+		buf.WriteByte('Z')
+	} else {
+		offsetMinutes := offsetSeconds / 60
+		if offsetMinutes < 0 {
+			buf.WriteByte('-')
+			offsetMinutes = -offsetMinutes
+		} else {
+			buf.WriteByte('+')
+		}
+		buf.WritePosIntWidth(offsetMinutes/60, 2)
+		buf.WriteByte(':')
+		buf.WritePosIntWidth(offsetMinutes%60, 2)
+	}
+	return buf.String()
 }
 
 var safeSet = [utf8.RuneSelf]bool{

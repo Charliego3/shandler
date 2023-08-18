@@ -2,7 +2,6 @@ package shandler
 
 import (
 	"github.com/lucasb-eyer/go-colorful"
-	"github.com/mattn/go-isatty"
 	"golang.org/x/exp/slog"
 	"io"
 	"os"
@@ -44,7 +43,7 @@ func createHandler(json bool, opts ...Option) *baseHandler {
 		w:          os.Stderr,
 		level:      slog.LevelInfo,
 		json:       json,
-		themes:     make(map[ThemeSection]*Theme, 9),
+		themes:     make(map[ThemeSchema]*Theme, 9),
 	}
 	for _, opt := range opts {
 		opt(h)
@@ -54,7 +53,7 @@ func createHandler(json bool, opts ...Option) *baseHandler {
 }
 
 func (h *baseHandler) initThemes() {
-	if h.tty = isatty.IsTerminal(h.TTY().Fd()); !h.tty {
+	if h.tty = h.isTTY(); !h.tty {
 		return
 	}
 
@@ -64,7 +63,7 @@ func (h *baseHandler) initThemes() {
 	h.themes[ThemeWarn] = fillTheme(h.themes[ThemeWarn], "#e16c00", "#ff9c01", true)
 	h.themes[ThemeError] = fillTheme(h.themes[ThemeError], "#ff000a", "#FF4F86", true)
 	h.themes[ThemePrefix] = fillTheme(h.themes[ThemePrefix], "#579159", "#008708", true)
-	h.themes[ThemeCaller] = fillTheme(h.themes[ThemeCaller], "#9d86b9", "#2f6982", false)
+	h.themes[ThemeCaller] = fillTheme(h.themes[ThemeCaller], "#765ea5", "#2f6e87", false)
 	h.themes[ThemeKey] = fillTheme(h.themes[ThemeKey], "#7F7F7F", "#7F7F7F", true)
 	if h.json {
 		h.themes[ThemeBracket] = fillTheme(h.themes[ThemeBracket], "#000000", "#ffffff", true)
@@ -128,7 +127,7 @@ func WithFullCaller() Option {
 	}
 }
 
-func WithTheme(section ThemeSection, theme *Theme) Option {
+func WithTheme(section ThemeSchema, theme *Theme) Option {
 	return func(cfg *baseHandler) {
 		if theme == nil {
 			return
