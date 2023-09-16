@@ -2,8 +2,9 @@ package shandler
 
 import (
 	"fmt"
-	"github.com/lucasb-eyer/go-colorful"
 	"testing"
+
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 func TestTheme(t *testing.T) {
@@ -43,14 +44,14 @@ func TestTheme(t *testing.T) {
 		},
 		{
 			orange, red, lightEmpty, darkEmpty,
-			"Foreground Bold Italic",
-			true, false, true, false,
+			"Foreground Bold Italic Underline",
+			true, false, true, true,
 			false, false, false, false,
 		},
 		{
 			orange, red, lightEmpty, darkEmpty,
-			"Foreground Bold Italic Underline",
-			true, false, true, true,
+			"Foreground Bold Italic",
+			true, false, true, false,
 			false, false, false, false,
 		},
 		{
@@ -63,30 +64,8 @@ func TestTheme(t *testing.T) {
 
 	for _, s := range tests {
 		theme := NewTheme().Foreground(s.lightF, s.darkF) // .Background(s.lightB, s.darkB)
-		if s.bold {
-			theme.Bold()
-		}
-		if s.faint {
-			theme.Faint()
-		}
-		if s.italic {
-			theme.Italic()
-		}
-		if s.underline {
-			theme.Underline()
-		}
-		if s.overline {
-			theme.Overline()
-		}
-		if s.blink {
-			theme.Blink()
-		}
-		if s.reverse {
-			theme.Reverse()
-		}
-		if s.crossOut {
-			theme.Reverse()
-		}
+		theme.Bold(s.bold).Faint(s.faint).Italic(s.italic).Underline(s.underline)
+		theme.Overline(s.overline).Blink(s.blink).Reverse(s.reverse).Reverse(s.reverse)
 		message := theme.Format().Render(s.message)
 		println(message, fmt.Sprintf("%q", message))
 	}

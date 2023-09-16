@@ -1,12 +1,13 @@
 package shandler
 
 import (
-	"golang.org/x/exp/slog"
 	"strconv"
 	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"golang.org/x/exp/slog"
 )
 
 const groupKeySep = '.'
@@ -31,7 +32,7 @@ type Builder interface {
 
 type baseBuilder struct {
 	h       *baseHandler
-	r       *slog.Record
+	r       slog.Record
 	buf     *Buffer
 	freeBuf bool      // should buf be freed?
 	sep     string    // separator to write before next key
@@ -39,7 +40,7 @@ type baseBuilder struct {
 	groups  *[]string // pool-allocated slice of active groups, for ReplaceAttr
 }
 
-func (h *baseHandler) createBaseBuilder(buf *Buffer, r *slog.Record) *baseBuilder {
+func (h *baseHandler) createBaseBuilder(buf *Buffer, r slog.Record) *baseBuilder {
 	b := &baseBuilder{h: h, r: r, buf: buf}
 	if h.replacer != nil {
 		b.groups = groupPool.Get().(*[]string)
@@ -101,40 +102,38 @@ func (b *baseBuilder) free() {
 	}
 }
 
-func (b *baseBuilder) formatTime(t time.Time) string {
+func (b *baseBuilder) appendTime(t time.Time) {
 	year, month, day := t.Date()
-	buf := NewBuffer()
-	buf.WritePosIntWidth(year, 4)
-	buf.WriteByte('-')
-	buf.WritePosIntWidth(int(month), 2)
-	buf.WriteByte('-')
-	buf.WritePosIntWidth(day, 2)
-	buf.WriteByte('T')
+	b.buf.WritePosIntWidth(year, 4)
+	b.buf.WriteByte('-')
+	b.buf.WritePosIntWidth(int(month), 2)
+	b.buf.WriteByte('-')
+	b.buf.WritePosIntWidth(day, 2)
+	b.buf.WriteByte('T')
 	hour, min, sec := t.Clock()
-	buf.WritePosIntWidth(hour, 2)
-	buf.WriteByte(':')
-	buf.WritePosIntWidth(min, 2)
-	buf.WriteByte(':')
-	buf.WritePosIntWidth(sec, 2)
+	b.buf.WritePosIntWidth(hour, 2)
+	b.buf.WriteByte(':')
+	b.buf.WritePosIntWidth(min, 2)
+	b.buf.WriteByte(':')
+	b.buf.WritePosIntWidth(sec, 2)
 	ns := t.Nanosecond()
-	buf.WriteByte('.')
-	buf.WritePosIntWidth(ns/1e6, 3)
+	b.buf.WriteByte('.')
+	b.buf.WritePosIntWidth(ns/1e6, 3)
 	_, offsetSeconds := t.Zone()
 	if offsetSeconds == 0 {
-		buf.WriteByte('Z')
+		b.buf.WriteByte('Z')
 	} else {
 		offsetMinutes := offsetSeconds / 60
 		if offsetMinutes < 0 {
-			buf.WriteByte('-')
+			b.buf.WriteByte('-')
 			offsetMinutes = -offsetMinutes
 		} else {
-			buf.WriteByte('+')
+			b.buf.WriteByte('+')
 		}
-		buf.WritePosIntWidth(offsetMinutes/60, 2)
-		buf.WriteByte(':')
-		buf.WritePosIntWidth(offsetMinutes%60, 2)
+		b.buf.WritePosIntWidth(offsetMinutes/60, 2)
+		b.buf.WriteByte(':')
+		b.buf.WritePosIntWidth(offsetMinutes%60, 2)
 	}
-	return buf.String()
 }
 
 var safeSet = [utf8.RuneSelf]bool{

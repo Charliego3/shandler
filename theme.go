@@ -2,9 +2,10 @@ package shandler
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/lucasb-eyer/go-colorful"
 	"github.com/muesli/termenv"
-	"strings"
 )
 
 // Sequence definitions.
@@ -28,6 +29,8 @@ const (
 
 //go:generate enumer -type ThemeSchema -output theme_string.go
 type ThemeSchema uint
+
+type Themes map[ThemeSchema]*Theme
 
 const (
 	ThemeTime ThemeSchema = iota + 1
@@ -73,49 +76,73 @@ func (t *Theme) Background(light, dark colorful.Color) *Theme {
 }
 
 // Bold enables bold rendering.
-func (t *Theme) Bold() *Theme {
+func (t *Theme) Bold(bold ...bool) *Theme {
+	if len(bold) > 0 && !bold[0] {
+		return t
+	}
 	t.sequences = append(t.sequences, BoldSeq)
 	return t
 }
 
 // Faint enables faint rendering.
-func (t *Theme) Faint() *Theme {
+func (t *Theme) Faint(faint ...bool) *Theme {
+	if len(faint) > 0 && !faint[0] {
+		return t
+	}
 	t.sequences = append(t.sequences, FaintSeq)
 	return t
 }
 
 // Italic enables italic rendering.
-func (t *Theme) Italic() *Theme {
+func (t *Theme) Italic(italic ...bool) *Theme {
+	if len(italic) > 0 && !italic[0] {
+		return t
+	}
 	t.sequences = append(t.sequences, ItalicSeq)
 	return t
 }
 
 // Underline enables underline rendering.
-func (t *Theme) Underline() *Theme {
+func (t *Theme) Underline(underline ...bool) *Theme {
+	if len(underline) > 0 && !underline[0] {
+		return t
+	}
 	t.sequences = append(t.sequences, UnderlineSeq)
 	return t
 }
 
 // Overline enables overline rendering.
-func (t *Theme) Overline() *Theme {
+func (t *Theme) Overline(overline ...bool) *Theme {
+	if len(overline) > 0 && !overline[0] {
+		return t
+	}
 	t.sequences = append(t.sequences, OverlineSeq)
 	return t
 }
 
 // Blink enables blink mode.
-func (t *Theme) Blink() *Theme {
+func (t *Theme) Blink(blink ...bool) *Theme {
+	if len(blink) > 0 && !blink[0] {
+		return t
+	}
 	t.sequences = append(t.sequences, BlinkSeq)
 	return t
 }
 
 // Reverse enables reverse color mode.
-func (t *Theme) Reverse() *Theme {
+func (t *Theme) Reverse(reverse ...bool) *Theme {
+	if len(reverse) > 0 && !reverse[0] {
+		return t
+	}
 	t.sequences = append(t.sequences, ReverseSeq)
 	return t
 }
 
 // CrossOut enables crossed-out rendering.
-func (t *Theme) CrossOut() *Theme {
+func (t *Theme) CrossOut(crossOut ...bool) *Theme {
+	if len(crossOut) > 0 && !crossOut[0] {
+		return t
+	}
 	t.sequences = append(t.sequences, CrossOutSeq)
 	return t
 }
@@ -138,9 +165,12 @@ func (t *Theme) Render(s string) string {
 	return t.formatted + s + CSI + ResetSeq + "m"
 }
 
-func (h *baseHandler) safeRender(t *Theme, s string) string {
-	if !h.tty || t == nil {
+func (h *baseHandler) safeRender(schema ThemeSchema, s string) string {
+	if !h.tty {
 		return s
 	}
-	return t.Render(s)
+	if theme, ok := h.themes[schema]; ok {
+		return theme.Render(s)
+	}
+	return s
 }

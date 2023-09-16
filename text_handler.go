@@ -1,11 +1,11 @@
 package shandler
 
 import (
-	"golang.org/x/exp/slog"
 	"runtime"
 	"strconv"
-	"time"
 	"unicode/utf8"
+
+	"golang.org/x/exp/slog"
 )
 
 const (
@@ -43,7 +43,7 @@ func (b *textBuilder) appendTime() {
 		return
 	}
 
-	b.buf.WriteString(b.h.safeRender(b.h.themes[ThemeTime], b.r.Time.Format(b.h.timeFormat)))
+	b.buf.WriteString(b.h.safeRender(ThemeTime, b.r.Time.Format(b.h.timeFormat)))
 }
 
 func (b *textBuilder) appendLevel() {
@@ -66,7 +66,7 @@ func (b *textBuilder) appendLevel() {
 		section = ThemeError
 		level = "ERRO"
 	}
-	b.buf.WriteString(b.h.safeRender(b.h.themes[section], level))
+	b.buf.WriteString(b.h.safeRender(section, level))
 }
 
 // appendCaller If r.PC is zero or disabled caller, ignore it.
@@ -96,19 +96,19 @@ func (b *textBuilder) appendCaller() {
 		caller = caller[idx+1:]
 	}
 	caller = "<" + caller + ":" + strconv.Itoa(f.Line) + ">"
-	b.buf.WriteString(b.h.safeRender(b.h.themes[ThemeCaller], caller))
+	b.buf.WriteString(b.h.safeRender(ThemeCaller, caller))
 }
 
 func (b *textBuilder) appendPrefix() {
 	var prefix string
 	if b.h.prefix == "" {
-		prefix = "\uF444"
+		prefix = ""
 	} else {
 		prefix = "[" + b.h.prefix + "]:"
 	}
 
 	b.buf.WriteByte(textAttrSep)
-	b.buf.WriteString(b.h.safeRender(b.h.themes[ThemePrefix], prefix))
+	b.buf.WriteString(b.h.safeRender(ThemePrefix, prefix))
 }
 
 func (b *textBuilder) appendMessage() {
@@ -162,7 +162,7 @@ func (b *textBuilder) appendAttr(a slog.Attr) {
 
 	if a.Value.Kind() != slog.KindGroup {
 		b.buf.WriteByte(textAttrSep)
-		b.buf.WriteString(b.h.safeRender(b.h.themes[ThemeKey], b.quote(string(*b.prefix)+a.Key)))
+		b.buf.WriteString(b.h.safeRender(ThemeKey, b.quote(string(*b.prefix)+a.Key)))
 		b.buf.WriteByte(textComponentSep)
 		b.appendValue(a.Value)
 		return
@@ -194,10 +194,9 @@ func (b *textBuilder) appendValue(v slog.Value) {
 	case slog.KindBool:
 		b.buf.WriteString(strconv.FormatBool(v.Bool()))
 	case slog.KindTime:
-		b.buf.WriteString(v.Time().Format(time.RFC3339Nano))
+		b.baseBuilder.appendTime(v.Time())
 	case slog.KindDuration:
 		b.buf.WriteString(v.Duration().String())
-	case slog.KindAny:
 	default:
 		b.buf.WriteString(b.quote(v.String()))
 	}

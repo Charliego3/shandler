@@ -1,11 +1,11 @@
 package shandler
 
 import (
-	"golang.org/x/exp/slog"
-	"math"
 	"os"
 	"testing"
 	"time"
+
+	"golang.org/x/exp/slog"
 )
 
 func BenchmarkLogger(b *testing.B) {
@@ -19,9 +19,8 @@ func BenchmarkLogger(b *testing.B) {
 		//WithTimeFormat(time.DateTime),
 		//WithLevel(slog.LevelDebug),
 	)))
-
-	b.ResetTimer()
 	b.ReportAllocs()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		slog.Warn("warn-message")
 	}
@@ -35,8 +34,8 @@ func BenchmarkSlog(b *testing.B) {
 		//Level:     slog.LevelDebug,
 	})))
 
-	b.ResetTimer()
 	b.ReportAllocs()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		slog.Warn("warn-message")
 	}
@@ -59,16 +58,23 @@ func TestOutput(t *testing.T) {
 			slog.Int("two", 2),
 			slog.Group("inner",
 				slog.String("key", "inner value"),
-				slog.Float64("f", math.MaxFloat64),
+				slog.Float64("f", float64(0.24559863512)),
 			)),
-		slog.Bool("b", true))
+		slog.Bool("b", true),
+		slog.Time("time", time.Now()),
+		slog.Any("struct", struct {
+			Name string
+			Age  int
+		}{
+			"Chalie", 100,
+		}))
 
 	slog.Error("error message")
 	logger := slog.New(slog.Default().Handler().(Handler).WithPrefix("another"))
 	logger.Info("with another prefix logged")
 
-	logger = slog.New(slog.Default().Handler().(Handler).WithThemes(map[ThemeSchema]*Theme{
-		ThemeCaller: NewTheme().Bold().Underline(),
+	logger = slog.New(logger.Handler().(Handler).WithThemes(map[ThemeSchema]*Theme{
+		ThemeCaller: NewTheme().Bold(true).Underline(true),
 	}))
-	logger.Info("with another prefix logged")
+	logger.Info("with another caller theme logged")
 }

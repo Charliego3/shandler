@@ -1,11 +1,12 @@
 package shandler
 
 import (
-	"github.com/lucasb-eyer/go-colorful"
-	"golang.org/x/exp/slog"
 	"io"
 	"os"
 	"time"
+
+	"github.com/lucasb-eyer/go-colorful"
+	"golang.org/x/exp/slog"
 )
 
 // Replacer is called to rewrite each non-group attribute before it is logged.
@@ -57,31 +58,27 @@ func (h *baseHandler) initThemes() {
 		return
 	}
 
-	h.themes[ThemeTime] = fillTheme(h.themes[ThemeTime], "#6085b9", "#7d467c", false)
-	h.themes[ThemeDebug] = fillTheme(h.themes[ThemeDebug], "#4746ff", "#2f81ff", true)
-	h.themes[ThemeInfo] = fillTheme(h.themes[ThemeInfo], "#009adc", "#00FFD5", true)
-	h.themes[ThemeWarn] = fillTheme(h.themes[ThemeWarn], "#e16c00", "#ff9c01", true)
-	h.themes[ThemeError] = fillTheme(h.themes[ThemeError], "#ff000a", "#FF4F86", true)
-	h.themes[ThemePrefix] = fillTheme(h.themes[ThemePrefix], "#579159", "#008708", true)
-	h.themes[ThemeCaller] = fillTheme(h.themes[ThemeCaller], "#765ea5", "#2f6e87", false)
-	h.themes[ThemeKey] = fillTheme(h.themes[ThemeKey], "#7F7F7F", "#7F7F7F", true)
+	h.themes[ThemeTime] = fillTheme(h.themes[ThemeTime], "#6085b9", "#7d467c", false, true, false)
+	h.themes[ThemeDebug] = fillTheme(h.themes[ThemeDebug], "#4746ff", "#2f81ff", true, false, false)
+	h.themes[ThemeInfo] = fillTheme(h.themes[ThemeInfo], "#009adc", "#00FFD5", true, false, false)
+	h.themes[ThemeWarn] = fillTheme(h.themes[ThemeWarn], "#e16c00", "#ff9c01", true, false, false)
+	h.themes[ThemeError] = fillTheme(h.themes[ThemeError], "#ff000a", "#FF4F86", true, false, false)
+	h.themes[ThemePrefix] = fillTheme(h.themes[ThemePrefix], "#579159", "#008708", true, false, false)
+	h.themes[ThemeCaller] = fillTheme(h.themes[ThemeCaller], "#765ea5", "#2f6e87", false, false, false)
+	h.themes[ThemeKey] = fillTheme(h.themes[ThemeKey], "#7F7F7F", "#7F7F7F", true, false, false)
 	if h.json {
-		h.themes[ThemeBracket] = fillTheme(h.themes[ThemeBracket], "#000000", "#ffffff", true)
+		h.themes[ThemeBracket] = fillTheme(h.themes[ThemeBracket], "#000000", "#ffffff", true, false, false)
 	}
 }
 
-func fillTheme(source *Theme, l, d string, bold bool) *Theme {
-	if source != nil {
-		return source.Format()
+func fillTheme(source *Theme, l, d string, bold, underline, overline bool) *Theme {
+	if source == nil {
+		light, _ := colorful.Hex(l)
+		dark, _ := colorful.Hex(d)
+		source = NewTheme().Foreground(light, dark)
+		source.Bold(bold).Underline(underline).Overline(overline)
 	}
-
-	light, _ := colorful.Hex(l)
-	dark, _ := colorful.Hex(d)
-	theme := NewTheme().Foreground(light, dark)
-	if bold {
-		theme.Bold()
-	}
-	return theme.Format()
+	return source.Format()
 }
 
 func WithTimeFormat(format string) Option {

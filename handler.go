@@ -2,11 +2,12 @@ package shandler
 
 import (
 	"context"
+	"io"
+	"sync"
+
 	"github.com/mattn/go-isatty"
 	"golang.org/x/exp/slices"
 	"golang.org/x/exp/slog"
-	"io"
-	"sync"
 )
 
 type Handler interface {
@@ -55,7 +56,7 @@ type baseHandler struct {
 	// fullCaller: <mod/package.FunctionName:Line>
 	fullCaller bool
 
-	themes map[ThemeSchema]*Theme
+	themes Themes
 }
 
 func (h *baseHandler) isTTY() bool {
@@ -96,7 +97,7 @@ func (h *baseHandler) Enabled(_ context.Context, level slog.Level) bool {
 //   - If a group has no Attrs (even if it has a non-empty key),
 //     ignore it.
 func (h *baseHandler) Handle(_ context.Context, r slog.Record) error {
-	b := h.createBuilder(NewBuffer(), &r)
+	b := h.createBuilder(NewBuffer(), r)
 	defer b.free()
 	b.start()
 	b.appendTime()
@@ -156,7 +157,7 @@ func (h *baseHandler) withPrefix(prefix string) *baseHandler {
 	return h2
 }
 
-func (h *baseHandler) withThemes(themes map[ThemeSchema]*Theme) *baseHandler {
+func (h *baseHandler) withThemes(themes Themes) *baseHandler {
 	h2 := h.clone()
 	for k, v := range themes {
 		h2.themes[k] = v
@@ -165,7 +166,7 @@ func (h *baseHandler) withThemes(themes map[ThemeSchema]*Theme) *baseHandler {
 	return h2
 }
 
-func (h *baseHandler) createBuilder(buf *Buffer, r *slog.Record) Builder {
+func (h *baseHandler) createBuilder(buf *Buffer, r slog.Record) Builder {
 	if h.json {
 		return nil
 	}
