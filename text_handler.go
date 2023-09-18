@@ -26,7 +26,7 @@ func (t *TextHandler) WithPrefix(prefix string) slog.Handler {
 	return &TextHandler{t.withPrefix(prefix)}
 }
 
-func (t *TextHandler) WithThemes(themes map[ThemeSchema]*Theme) slog.Handler {
+func (t *TextHandler) WithThemes(themes Themes) slog.Handler {
 	return &TextHandler{t.withThemes(themes)}
 }
 

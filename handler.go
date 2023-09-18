@@ -12,7 +12,31 @@ import (
 
 type Handler interface {
 	WithPrefix(prefix string) slog.Handler
-	WithThemes(themes map[ThemeSchema]*Theme) slog.Handler
+	WithThemes(themes Themes) slog.Handler
+}
+
+func getHandler() Handler {
+	h := slog.Default().Handler()
+	if sh, ok := h.(Handler); ok {
+		return sh
+	}
+	return nil
+}
+
+func CopyWithPrefix(prefix string) *slog.Logger {
+	h := getHandler()
+	if h == nil {
+		return nil
+	}
+	return slog.New(h.WithPrefix(prefix))
+}
+
+func CopyWithThemes(themes Themes) *slog.Logger {
+	h := getHandler()
+	if h == nil {
+		return nil
+	}
+	return slog.New(h.WithThemes(themes))
 }
 
 // File represents a file descriptor.
