@@ -46,7 +46,7 @@ func TestOutput(t *testing.T) {
 		WithCaller(),
 		//WithPrefix("Application"),
 		//WithFullCaller(),
-		WithTimeFormat(time.DateTime),
+		// WithTimeFormat(time.DateTime),
 		WithLevel(slog.LevelDebug),
 	)))
 

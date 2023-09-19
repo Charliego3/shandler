@@ -3,7 +3,6 @@ package shandler
 import (
 	"io"
 	"os"
-	"time"
 
 	"github.com/lucasb-eyer/go-colorful"
 	"golang.org/x/exp/slog"
@@ -40,7 +39,7 @@ type Option func(*baseHandler)
 
 func createHandler(json bool, opts ...Option) *baseHandler {
 	h := &baseHandler{
-		timeFormat: time.Kitchen,
+		timeFormat: "15:04:05.000",
 		w:          os.Stderr,
 		level:      slog.LevelInfo,
 		json:       json,
