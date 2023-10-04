@@ -6,7 +6,6 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/mattn/go-isatty v0.0.19
 	github.com/muesli/termenv v0.15.2
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 )
 
 require (

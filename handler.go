@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/mattn/go-isatty"
-	"golang.org/x/exp/slices"
-	"golang.org/x/exp/slog"
+	"log/slog"
+	"slices"
 )
 
 type Handler interface {

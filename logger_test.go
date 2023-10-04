@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func BenchmarkLogger(b *testing.B) {

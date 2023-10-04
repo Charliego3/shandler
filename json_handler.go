@@ -1,7 +1,7 @@
 package shandler
 
 import (
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"time"
 )
 

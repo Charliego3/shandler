@@ -7,7 +7,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 const groupKeySep = '.'
@@ -106,10 +106,10 @@ func (b *baseBuilder) appendTime(t time.Time) {
 	b.buf.WriteByte('-')
 	b.buf.WritePosIntWidth(day, 2)
 	b.buf.WriteByte('T')
-	hour, min, sec := t.Clock()
+	hour, minute, sec := t.Clock()
 	b.buf.WritePosIntWidth(hour, 2)
 	b.buf.WriteByte(':')
-	b.buf.WritePosIntWidth(min, 2)
+	b.buf.WritePosIntWidth(minute, 2)
 	b.buf.WriteByte(':')
 	b.buf.WritePosIntWidth(sec, 2)
 	ns := t.Nanosecond()
