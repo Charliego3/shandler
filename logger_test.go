@@ -30,8 +30,8 @@ func BenchmarkSlog(b *testing.B) {
 	f, _ := os.OpenFile("slog.log", os.O_CREATE|os.O_RDWR, os.ModePerm)
 	defer f.Close()
 	slog.SetDefault(slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{
-		//AddSource: true,
-		//Level:     slog.LevelDebug,
+		// AddSource: true,
+		// Level:     slog.LevelDebug,
 	})))
 
 	b.ReportAllocs()
@@ -70,11 +70,11 @@ func TestOutput(t *testing.T) {
 		}))
 
 	slog.Error("error message")
-	logger := slog.New(slog.Default().Handler().(Handler).WithPrefix("another"))
+	logger := CopyWithPrefix("another")
 	logger.Info("with another prefix logged")
 
-	logger = slog.New(logger.Handler().(Handler).WithThemes(map[ThemeSchema]*Theme{
+	logger = CopyWithThemes(map[ThemeSchema]*Theme{
 		ThemeCaller: NewTheme().Bold(true).Underline(true),
-	}))
+	})
 	logger.Info("with another caller theme logged")
 }

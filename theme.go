@@ -11,7 +11,7 @@ import (
 // Sequence definitions.
 const (
 	separator    = ";"
-	ResetSeq     = "0"
+	ResetSeq     = '0'
 	BoldSeq      = "1"
 	FaintSeq     = "2"
 	ItalicSeq    = "3"
@@ -24,8 +24,9 @@ const (
 	Background   = "48"
 
 	ESC = '\x1b'
-	CSI = string(ESC) + "["
 )
+
+var CSI = []byte(string(ESC) + "[")
 
 //go:generate enumer -type ThemeSchema -output theme_string.go
 type ThemeSchema uint
@@ -48,7 +49,7 @@ var hasDarkBackground = termenv.HasDarkBackground()
 
 type Theme struct {
 	sequences []string
-	formatted string
+	formatted []byte
 }
 
 func NewTheme() *Theme {
@@ -157,20 +158,30 @@ func (t *Theme) getSequence(f colorful.Color, bg bool) string {
 }
 
 func (t *Theme) Format() *Theme {
-	t.formatted = fmt.Sprintf("%s%sm", CSI, strings.Join(t.sequences, separator))
+	t.formatted = []byte(fmt.Sprintf("%s%sm", CSI, strings.Join(t.sequences, separator)))
 	return t
 }
 
 func (t *Theme) Render(s string) string {
-	return t.formatted + s + CSI + ResetSeq + "m"
+	return string(t.formatted) + s + string(CSI) + string(ResetSeq) + "m"
 }
 
-func (h *baseHandler) safeRender(schema ThemeSchema, s string) string {
+func (t *Theme) WriteRendered(buf *Buffer, s string) {
+	buf.Write(t.formatted)
+	buf.WriteString(s)
+	buf.Write(CSI)
+	buf.WriteByte(ResetSeq)
+	buf.WriteByte('m')
+}
+
+func (h *baseHandler) WriteColorful(schema ThemeSchema, buf *Buffer, s string) {
 	if !h.tty {
-		return s
+		buf.WriteString(s)
+		return
 	}
 	if theme, ok := h.themes[schema]; ok {
-		return theme.Render(s)
+		theme.WriteRendered(buf, s)
+		return
 	}
-	return s
+	buf.WriteString(s)
 }
