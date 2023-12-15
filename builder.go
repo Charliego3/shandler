@@ -31,13 +31,11 @@ type Builder interface {
 }
 
 type baseBuilder struct {
-	h       *baseHandler
-	r       slog.Record
-	buf     *Buffer
-	freeBuf bool      // should buf be freed?
-	sep     string    // separator to write before next key
-	prefix  *Buffer   // for text: key prefix
-	groups  *[]string // pool-allocated slice of active groups, for ReplaceAttr
+	h      *baseHandler
+	r      slog.Record
+	buf    *Buffer
+	prefix *Buffer   // for text: key prefix
+	groups *[]string // pool-allocated slice of active groups, for ReplaceAttr
 }
 
 func (h *baseHandler) createBaseBuilder(buf *Buffer, r slog.Record) *baseBuilder {
@@ -96,9 +94,7 @@ func needsQuoting(s string) bool {
 }
 
 func (b *baseBuilder) free() {
-	//if b.freeBuf {
 	b.buf.Free()
-	//}
 	if gs := b.groups; gs != nil {
 		*gs = (*gs)[:0]
 		groupPool.Put(gs)
@@ -113,10 +109,10 @@ func (b *baseBuilder) appendTime(t time.Time) {
 	b.buf.WriteByte('-')
 	b.buf.WritePosIntWidth(day, 2)
 	b.buf.WriteByte('T')
-	hour, min, sec := t.Clock()
+	hour, minute, sec := t.Clock()
 	b.buf.WritePosIntWidth(hour, 2)
 	b.buf.WriteByte(':')
-	b.buf.WritePosIntWidth(min, 2)
+	b.buf.WritePosIntWidth(minute, 2)
 	b.buf.WriteByte(':')
 	b.buf.WritePosIntWidth(sec, 2)
 	ns := t.Nanosecond()
@@ -140,100 +136,101 @@ func (b *baseBuilder) appendTime(t time.Time) {
 }
 
 var safeSet = [utf8.RuneSelf]bool{
-	' ':      true,
-	'!':      true,
-	'"':      false,
-	'#':      true,
-	'$':      true,
-	'%':      true,
-	'&':      true,
-	'\'':     true,
-	'(':      true,
-	')':      true,
-	'*':      true,
-	'+':      true,
-	',':      true,
-	'-':      true,
-	'.':      true,
-	'/':      true,
-	'0':      true,
-	'1':      true,
-	'2':      true,
-	'3':      true,
-	'4':      true,
-	'5':      true,
-	'6':      true,
-	'7':      true,
-	'8':      true,
-	'9':      true,
-	':':      true,
-	';':      true,
-	'<':      true,
-	'=':      true,
-	'>':      true,
-	'?':      true,
-	'@':      true,
-	'A':      true,
-	'B':      true,
-	'C':      true,
-	'D':      true,
-	'E':      true,
-	'F':      true,
-	'G':      true,
-	'H':      true,
-	'I':      true,
-	'J':      true,
-	'K':      true,
-	'L':      true,
-	'M':      true,
-	'N':      true,
-	'O':      true,
-	'P':      true,
-	'Q':      true,
-	'R':      true,
-	'S':      true,
-	'T':      true,
-	'U':      true,
-	'V':      true,
-	'W':      true,
-	'X':      true,
-	'Y':      true,
-	'Z':      true,
-	'[':      true,
-	'\\':     false,
-	']':      true,
-	'^':      true,
-	'_':      true,
-	'`':      true,
-	'a':      true,
-	'b':      true,
-	'c':      true,
-	'd':      true,
-	'e':      true,
-	'f':      true,
-	'g':      true,
-	'h':      true,
-	'i':      true,
-	'j':      true,
-	'k':      true,
-	'l':      true,
-	'm':      true,
-	'n':      true,
-	'o':      true,
-	'p':      true,
-	'q':      true,
-	'r':      true,
-	's':      true,
-	't':      true,
-	'u':      true,
-	'v':      true,
-	'w':      true,
-	'x':      true,
-	'y':      true,
-	'z':      true,
-	'{':      true,
-	'|':      true,
-	'}':      true,
-	'~':      true,
+	' ':  true,
+	'!':  true,
+	'"':  false,
+	'#':  true,
+	'$':  true,
+	'%':  true,
+	'&':  true,
+	'\'': true,
+	'(':  true,
+	')':  true,
+	'*':  true,
+	'+':  true,
+	',':  true,
+	'-':  true,
+	'.':  true,
+	'/':  true,
+	'0':  true,
+	'1':  true,
+	'2':  true,
+	'3':  true,
+	'4':  true,
+	'5':  true,
+	'6':  true,
+	'7':  true,
+	'8':  true,
+	'9':  true,
+	':':  true,
+	';':  true,
+	'<':  true,
+	'=':  true,
+	'>':  true,
+	'?':  true,
+	'@':  true,
+	'A':  true,
+	'B':  true,
+	'C':  true,
+	'D':  true,
+	'E':  true,
+	'F':  true,
+	'G':  true,
+	'H':  true,
+	'I':  true,
+	'J':  true,
+	'K':  true,
+	'L':  true,
+	'M':  true,
+	'N':  true,
+	'O':  true,
+	'P':  true,
+	'Q':  true,
+	'R':  true,
+	'S':  true,
+	'T':  true,
+	'U':  true,
+	'V':  true,
+	'W':  true,
+	'X':  true,
+	'Y':  true,
+	'Z':  true,
+	'[':  true,
+	'\\': false,
+	']':  true,
+	'^':  true,
+	'_':  true,
+	'`':  true,
+	'a':  true,
+	'b':  true,
+	'c':  true,
+	'd':  true,
+	'e':  true,
+	'f':  true,
+	'g':  true,
+	'h':  true,
+	'i':  true,
+	'j':  true,
+	'k':  true,
+	'l':  true,
+	'm':  true,
+	'n':  true,
+	'o':  true,
+	'p':  true,
+	'q':  true,
+	'r':  true,
+	's':  true,
+	't':  true,
+	'u':  true,
+	'v':  true,
+	'w':  true,
+	'x':  true,
+	'y':  true,
+	'z':  true,
+	'{':  true,
+	'|':  true,
+	'}':  true,
+	'~':  true,
+
 	'\u007f': true,
 }

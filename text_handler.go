@@ -3,7 +3,7 @@ package shandler
 import (
 	"runtime"
 	"strconv"
-	"unicode/utf8"
+	"strings"
 
 	"log/slog"
 )
@@ -11,7 +11,7 @@ import (
 const (
 	textComponentSep = '='
 	textAttrSep      = ' '
-	callerSep        = "/"
+	callerSep        = '/'
 )
 
 type TextHandler struct {
@@ -43,7 +43,7 @@ func (b *textBuilder) appendTime() {
 		return
 	}
 
-	b.buf.WriteString(b.h.safeRender(ThemeTime, b.r.Time.Format(b.h.timeFormat)))
+	b.h.WriteColorful(ThemeTime, b.buf, b.r.Time.Format(b.h.timeFormat))
 }
 
 func (b *textBuilder) appendLevel() {
@@ -66,7 +66,7 @@ func (b *textBuilder) appendLevel() {
 		section = ThemeError
 		level = "ERRO"
 	}
-	b.buf.WriteString(b.h.safeRender(section, level))
+	b.h.WriteColorful(section, b.buf, level)
 }
 
 // appendCaller If r.PC is zero or disabled caller, ignore it.
@@ -80,23 +80,20 @@ func (b *textBuilder) appendCaller() {
 	f, _ := fs.Next()
 	caller := f.Function
 	if !b.h.fullCaller {
-		var idx, founded int
-		for i := utf8.RuneCountInString(caller) - 1; i >= 0; i-- {
-			if caller[i] == callerSep[0] {
+		var founded int
+		idx := strings.LastIndexFunc(caller, func(r rune) bool {
+			if r == callerSep {
 				founded++
 			}
-			idx = i
 			if founded == 2 {
-				break
+				return true
 			}
-		}
-		if idx == 0 {
-			idx -= 1
-		}
+			return false
+		})
 		caller = caller[idx+1:]
 	}
 	caller = "<" + caller + ":" + strconv.Itoa(f.Line) + ">"
-	b.buf.WriteString(b.h.safeRender(ThemeCaller, caller))
+	b.h.WriteColorful(ThemeCaller, b.buf, caller)
 }
 
 func (b *textBuilder) appendPrefix() {
@@ -108,7 +105,7 @@ func (b *textBuilder) appendPrefix() {
 	}
 
 	b.buf.WriteByte(textAttrSep)
-	b.buf.WriteString(b.h.safeRender(ThemePrefix, prefix))
+	b.h.WriteColorful(ThemePrefix, b.buf, prefix)
 }
 
 func (b *textBuilder) appendMessage() {
@@ -162,7 +159,7 @@ func (b *textBuilder) appendAttr(a slog.Attr) {
 
 	if a.Value.Kind() != slog.KindGroup {
 		b.buf.WriteByte(textAttrSep)
-		b.buf.WriteString(b.h.safeRender(ThemeKey, b.quote(string(*b.prefix)+a.Key)))
+		b.h.WriteColorful(ThemeKey, b.buf, b.quote(string(*b.prefix)+a.Key))
 		b.buf.WriteByte(textComponentSep)
 		b.appendValue(a.Value)
 		return
