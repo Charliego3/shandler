@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/lucasb-eyer/go-colorful"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 // Replacer is called to rewrite each non-group attribute before it is logged.

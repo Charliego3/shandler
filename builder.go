@@ -7,7 +7,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 const groupKeySep = '.'
@@ -77,7 +77,10 @@ func needsQuoting(s string) bool {
 	for i := 0; i < len(s); {
 		b := s[i]
 		if b < utf8.RuneSelf {
-			if b != '\\' && (b == ' ' || b == '=' || !safeSet[b]) {
+			if b == '\t' || b == '\n' {
+				return false
+			}
+			if b != '\\' && (b == '=' || !safeSet[b]) {
 				return true
 			}
 			i++

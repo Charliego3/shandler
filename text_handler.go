@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 const (

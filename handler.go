@@ -7,7 +7,7 @@ import (
 
 	"github.com/mattn/go-isatty"
 	"golang.org/x/exp/slices"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 type Handler interface {
